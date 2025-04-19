@@ -4,7 +4,7 @@ from PIL import Image, ImageTk
 import cv2
 import numpy as np
 from ..theme import get_color, get_font, get_padding
-from face_recognition.initializers import (
+from ...face_recognition.initializers import (
     face_database,
     save_face_database,
     FaceEntry
