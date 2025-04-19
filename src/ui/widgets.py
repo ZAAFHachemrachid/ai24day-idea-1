@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from face_recognition.initializers import face_database, save_face_database
+from ..face_recognition.initializers import face_database, save_face_database
 
 class StatsPanel(ttk.LabelFrame):
     def __init__(self, parent, **kwargs):

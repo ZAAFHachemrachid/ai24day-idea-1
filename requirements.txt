@@ -1,4 +1,6 @@
 numpy>=1.19.0
 opencv-python>=4.5.0
 filterpy>=1.4.5
+psutil>=5.9.0  # For system resource monitoring
+pytest>=7.0.0  # For unit testing
 # Existing dependencies below (if any)

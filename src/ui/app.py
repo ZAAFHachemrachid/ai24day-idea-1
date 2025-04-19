@@ -1,14 +1,15 @@
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 from .theme import setup_theme, get_color, get_font, get_padding
-from src.utils.camera_manager import CameraManager
-from face_recognition.initializers import face_app, use_insightface, face_database
-from face_recognition.recognition import recognize_face
-from tracking.tracker import FaceTracker
-from attendance.logger import AttendanceLogger
-from src.utils.detection import FaceDetector
-from config import CAMERA_CONFIG, DETECTION_CONFIG
-from src.utils.parallel import (
+from ..utils.camera_manager import CameraManager
+from ..utils.performance_logger import PerformanceLogger
+from ..face_recognition.initializers import face_app, use_insightface, face_database
+from ..face_recognition.recognition import recognize_face
+from ..tracking.tracker import FaceTracker
+from ..attendance.logger import AttendanceLogger
+from ..utils.detection import FaceDetector
+from ..config.config import CAMERA_CONFIG, DETECTION_CONFIG
+from ..utils.parallel import (
     ThreadSafeFrameBuffer,
     FaceDetectionPool,
     RecognitionPool,
@@ -18,7 +19,7 @@ from src.utils.parallel import (
 import time
 import cv2
 import numpy as np
-from config import CAMERA_CONFIG
+from ..config.config import CAMERA_CONFIG
 import logging
 from queue import Queue
 import threading
@@ -51,6 +52,9 @@ class FaceRecognitionApp(ctk.CTk):
         self._frame_counter = 0
         self._frame_lock = threading.Lock()
         self.detected_faces = set()  # Track currently detected faces
+        
+        # Initialize performance logger
+        self.perf_logger = PerformanceLogger.instance()
         
         # Performance tracking
         self.frame_times = []
@@ -346,13 +350,29 @@ class FaceRecognitionApp(ctk.CTk):
                 except Exception as e:
                     logger.error(f"Error processing frame: {str(e)}", exc_info=True)
 
-            # Update performance stats
-            self.frame_times.append(time.time() - start_time)
+            # Calculate performance metrics
+            frame_time = time.time() - start_time
+            self.frame_times.append(frame_time)
+            
             if len(self.frame_times) > 10:
+                # Calculate averages
                 fps = 1 / np.mean(self.frame_times[-10:])
                 avg_det = np.mean(self.detection_times[-10:]) * 1000 if self.detection_times else 0
                 avg_rec = np.mean(self.recognition_times[-10:]) * 1000 if self.recognition_times else 0
+                
+                # Update UI
                 self.control_panel.update_stats(fps, avg_det, avg_rec)
+                
+                # Log frame processed for FPS tracking
+                self.perf_logger.log_frame_processed()
+                
+                # Clear old metrics
+                if len(self.frame_times) > 100:
+                    self.frame_times = self.frame_times[-50:]
+                if len(self.detection_times) > 100:
+                    self.detection_times = self.detection_times[-50:]
+                if len(self.recognition_times) > 100:
+                    self.recognition_times = self.recognition_times[-50:]
 
         except Exception as e:
             logger.error(f"Error in update_ui: {str(e)}")
@@ -443,6 +463,10 @@ class FaceRecognitionApp(ctk.CTk):
     def on_closing(self):
         """Handle window closing"""
         self.running = False
+        
+        # Shutdown performance logger
+        if hasattr(self, 'perf_logger'):
+            self.perf_logger.shutdown()
         
         try:
             # Shutdown processing pools

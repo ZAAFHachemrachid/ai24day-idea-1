@@ -8,23 +8,23 @@ import logging
 from PIL import Image, ImageTk
 
 from .widgets import ControlPanel
-from config import CAMERA_CONFIG
+from ..config import CAMERA_CONFIG, DETECTION_CONFIG
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 from .dialogs import (
     create_registration_dialog, show_attendance_logs,
     show_saved_faces, select_facial_features, AddCameraDialog
 )
 from .camera_view import CameraGridView, SingleCameraView
-from tracking.tracker import FaceTracker
-from attendance.logger import AttendanceLogger
-from face_recognition.initializers import face_app, use_insightface, face_database
-from face_recognition.recognition import recognize_face, detect_facial_features
-from config import DETECTION_CONFIG
-from src.utils.detection import FaceDetector
-from src.utils.camera_manager import CameraManager
+from ..tracking.tracker import FaceTracker
+from ..attendance.logger import AttendanceLogger
+from ..face_recognition.initializers import face_app, use_insightface, face_database
+from ..face_recognition.recognition import recognize_face, detect_facial_features
+from ..utils.detection import FaceDetector
+from ..utils.camera_manager import CameraManager
 
 class FaceRecognitionApp:
     def __init__(self, root):

@@ -7,8 +7,9 @@ from queue import Queue
 from typing import List, Optional, Tuple, Dict
 import numpy as np
 import cv2
-from face_recognition.initializers import face_app
+from ...face_recognition.initializers import face_app
 import logging
+from ..performance_logger import PerformanceLogger
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,11 @@ class FaceDetectionPool:
                     
                     # Calculate processing time
                     processing_time = (end_time - start_time) / cv2.getTickFrequency()
+                    
+                    # Log performance metrics
+                    perf_logger = PerformanceLogger.instance()
+                    perf_logger.log_detection_time(processing_time)
+                    perf_logger.log_frame_processed()
                     
                     # Put results in output queue
                     result = DetectionResult(faces, frame_id, processing_time)

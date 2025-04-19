@@ -3,7 +3,7 @@ import numpy as np
 from typing import Optional
 import logging
 from .camera_source import CameraSource
-from config import CAMERA_CONFIG
+from src.config import CAMERA_CONFIG
 
 # Configure logging
 logger = logging.getLogger(__name__)

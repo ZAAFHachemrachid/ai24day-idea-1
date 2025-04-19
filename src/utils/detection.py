@@ -6,7 +6,7 @@ from src.database.db_operations import DatabaseOperations
 from src.utils.position_tracking import PositionTracker
 from src.utils.distance_tracking import DistanceTracker
 from src.utils.tracking import MotionPredictor
-from face_recognition.recognition import recognize_face
+from src.face_recognition.recognition import recognize_face
 
 # Configure logging
 logger = logging.getLogger(__name__)

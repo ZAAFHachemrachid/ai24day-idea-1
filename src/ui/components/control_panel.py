@@ -2,10 +2,10 @@ import customtkinter as ctk
 from datetime import datetime
 from typing import List, Optional, Callable
 from ..theme import get_color, get_font, get_padding
-from face_recognition.initializers import face_database, save_face_database
-from src.utils.delete_manager import DeleteManager
-from src.database.db_operations import DatabaseOperations
-from src.utils.presence_verifier import PresenceVerifier
+from ...face_recognition.initializers import face_database, save_face_database
+from ...utils.delete_manager import DeleteManager
+from ...database.db_operations import DatabaseOperations
+from ...utils.presence_verifier import PresenceVerifier
 
 class StatsPanel(ctk.CTkFrame):
     def __init__(self, parent):

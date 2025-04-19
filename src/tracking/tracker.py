@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from utils import create_tracker, preprocess_frame
-from config import DETECTION_CONFIG
+from src.utils.utils import create_tracker, preprocess_frame
+from src.config import DETECTION_CONFIG
 
 class FaceTracker:
     def __init__(self):

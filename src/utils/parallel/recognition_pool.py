@@ -7,8 +7,9 @@ from queue import Queue
 from typing import List, Optional, Tuple, Dict
 import numpy as np
 import cv2
-from face_recognition.recognition import recognize_face
-from face_recognition.initializers import face_app
+from ...face_recognition.recognition import recognize_face
+from ...face_recognition.initializers import face_app
+from ..performance_logger import PerformanceLogger
 
 
 class RecognitionResult:
@@ -103,6 +104,10 @@ class RecognitionPool:
                 
                 # Calculate processing time
                 processing_time = (end_time - start_time) / cv2.getTickFrequency()
+                
+                # Log performance metrics
+                perf_logger = PerformanceLogger.instance()
+                perf_logger.log_recognition_time(processing_time)
                 
                 # Put results in output queue
                 result = RecognitionResult(

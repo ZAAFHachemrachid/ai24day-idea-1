@@ -5,7 +5,7 @@ import numpy as np
 import insightface
 import datetime
 from insightface.app import FaceAnalysis
-from config import DATA_DIR, FACE_DB_PATH
+from ..config import DATA_DIR, FACE_DB_PATH
 
 # Initialize HOG detector
 hog = cv2.HOGDescriptor()

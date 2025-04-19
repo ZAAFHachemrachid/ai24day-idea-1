@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
-from face_recognition.initializers import face_database, save_face_database
+from ..face_recognition.initializers import face_database, save_face_database
 import os
 from PIL import Image, ImageTk
-from config import ATTENDANCE_LOG
+from ..config import ATTENDANCE_LOG
 
 def create_registration_dialog(parent, current_frame, face_app):
     """Create a dialog for registering new faces"""

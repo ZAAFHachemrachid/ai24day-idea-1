@@ -18,23 +18,27 @@ lib64/
 venv/
 env/
 
-# Project build artifacts
+# Project specific directories
+data/*
+!data/.gitkeep
+
+# Build artifacts
 *.spec
 build/
 
-# Database
-*.sqlite
-*.db
+# Database files
+data/*.sqlite
+data/*.db
 
 # Face recognition data
 face_data/face_database.pkl
 face_data/face_database.pkl.bak
 faces/archived/
+attendance_records/*.csv
 
 # Logs and temporary data
 logs/
 *.log
-attendance_records/*.csv
 
 # IDE specific files
 .idea/
@@ -45,10 +49,18 @@ attendance_records/*.csv
 
 # Local configuration
 .env
-config.local.py
+src/config/config.local.py
 
 # Keep
 !requirements.txt
 !documentation/
+!src/
+!tests/
+!tools/
+!scripts/
+!examples/
 !*.md
 !*.tex
+
+# Ensure empty directories are kept
+!.gitkeep

@@ -16,7 +16,7 @@ DETECTION_CONFIG = {
 }
 
 # Directory setup
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "face_data")
 os.makedirs(DATA_DIR, exist_ok=True)
 FACE_DB_PATH = os.path.join(DATA_DIR, "face_database.pkl")
 ATTENDANCE_LOG = os.path.join(DATA_DIR, "attendance_log.csv")

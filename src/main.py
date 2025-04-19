@@ -1,4 +1,4 @@
-from ui.app import FaceRecognitionApp
+from src.ui.app import FaceRecognitionApp
 
 if __name__ == "__main__":
     app = FaceRecognitionApp()

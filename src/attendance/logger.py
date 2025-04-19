@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from typing import Dict, Set, Tuple
 
-from config import ATTENDANCE_LOG, AWAY_THRESHOLD
+from ..config import ATTENDANCE_LOG, AWAY_THRESHOLD
 from src.utils.presence_verifier import PresenceVerifier
 
 class AttendanceLogger:

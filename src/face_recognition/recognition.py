@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from config import DETECTION_CONFIG
+from ..config import DETECTION_CONFIG
 from .initializers import face_database
 
 def recognize_face(face_embedding):
