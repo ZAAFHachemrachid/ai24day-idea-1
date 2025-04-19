@@ -1,0 +1,244 @@
+\chapter{Maintenance Procedures}
+
+\section{Overview}
+This chapter details the regular maintenance procedures and best practices for keeping the system running optimally.
+
+\section{Database Maintenance}
+
+\subsection{Regular Optimization}
+\begin{lstlisting}[language=SQL]
+-- Database maintenance script
+VACUUM;  -- Reclaim unused space
+ANALYZE;  -- Update statistics
+REINDEX;  -- Rebuild indexes
+\end{lstlisting}
+
+\subsection{Data Cleanup}
+\begin{lstlisting}[language=Python]
+def cleanup_old_records():
+    """Remove old attendance records"""
+    cutoff_date = datetime.now() - timedelta(days=365)
+    
+    session = get_session()
+    try:
+        # Delete old attendance records
+        session.query(Attendance)\
+            .filter(Attendance.date < cutoff_date)\
+            .delete()
+            
+        # Delete orphaned face samples
+        session.query(FaceSample)\
+            .filter(~FaceSample.user_id.in_(
+                session.query(User.id)
+            ))\
+            .delete()
+            
+        session.commit()
+    finally:
+        session.close()
+\end{lstlisting}
+
+\section{File System Maintenance}
+
+\subsection{Log Rotation}
+\begin{lstlisting}[language=Python]
+class LogManager:
+    def setup_log_rotation(self):
+        """Configure log rotation"""
+        log_handler = RotatingFileHandler(
+            'logs/system.log',
+            maxBytes=10*1024*1024,  # 10MB
+            backupCount=5
+        )
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        log_handler.setFormatter(formatter)
+        return log_handler
+\end{lstlisting}
+
+\subsection{Face Sample Management}
+\begin{lstlisting}[language=Python]
+def cleanup_face_samples():
+    """Manage face sample storage"""
+    # Remove unused face samples
+    for sample in get_unused_samples():
+        os.remove(sample.image_path)
+        
+    # Archive old samples
+    archive_threshold = datetime.now() - timedelta(days=180)
+    for sample in get_old_samples(archive_threshold):
+        archive_sample(sample)
+        
+    # Compress archived samples
+    compress_archived_samples()
+\end{lstlisting}
+
+\section{Performance Monitoring}
+
+\subsection{System Metrics Collection}
+\begin{lstlisting}[language=Python]
+class SystemMonitor:
+    def collect_metrics(self):
+        """Collect system performance metrics"""
+        metrics = {
+            'cpu_usage': psutil.cpu_percent(),
+            'memory_usage': psutil.virtual_memory().percent,
+            'disk_usage': psutil.disk_usage('/').percent,
+            'process_memory': self._get_process_memory(),
+            'thread_count': threading.active_count(),
+            'open_files': len(psutil.Process().open_files())
+        }
+        return metrics
+        
+    def _get_process_memory(self):
+        """Get current process memory usage"""
+        process = psutil.Process()
+        return process.memory_info().rss / 1024 / 1024  # MB
+\end{lstlisting}
+
+\section{Backup Procedures}
+
+\subsection{Database Backup}
+\begin{lstlisting}[language=Python]
+def backup_database():
+    """Create database backup"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_path = f'backups/database_{timestamp}.sqlite'
+    
+    # Create backup
+    connection = sqlite3.connect('database.sqlite')
+    backup = sqlite3.connect(backup_path)
+    connection.backup(backup)
+    
+    # Compress backup
+    with open(backup_path, 'rb') as f_in:
+        with gzip.open(f'{backup_path}.gz', 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+            
+    # Remove uncompressed backup
+    os.remove(backup_path)
+\end{lstlisting}
+
+\section{Model Management}
+
+\subsection{Model Updates}
+\begin{lstlisting}[language=Python]
+class ModelManager:
+    def update_models(self):
+        """Update face detection and recognition models"""
+        # Check for new model versions
+        if self._check_new_models():
+            # Backup current models
+            self._backup_current_models()
+            
+            try:
+                # Download and verify new models
+                self._download_new_models()
+                self._verify_models()
+                
+                # Update model configuration
+                self._update_model_config()
+            except Exception as e:
+                # Rollback to previous models
+                self._restore_backup_models()
+                raise
+\end{lstlisting}
+
+\section{System Updates}
+
+\subsection{Update Procedure}
+\begin{enumerate}
+    \item Backup current system state
+    \item Check system requirements
+    \item Download updates
+    \item Verify update integrity
+    \item Apply updates
+    \item Validate system functionality
+\end{enumerate}
+
+\subsection{Update Implementation}
+\begin{lstlisting}[language=Python]
+class SystemUpdater:
+    def perform_update(self):
+        """Perform system update"""
+        try:
+            # Backup current state
+            self._backup_system()
+            
+            # Check requirements
+            self._verify_requirements()
+            
+            # Download updates
+            updates = self._download_updates()
+            
+            # Verify updates
+            self._verify_updates(updates)
+            
+            # Apply updates
+            self._apply_updates(updates)
+            
+            # Validate system
+            self._validate_system()
+            
+        except Exception as e:
+            # Rollback if update fails
+            self._rollback_update()
+            raise
+\end{lstlisting}
+
+\section{Maintenance Schedule}
+
+\subsection{Daily Tasks}
+\begin{itemize}
+    \item Log rotation
+    \item Performance monitoring
+    \item Error log review
+    \item Temporary file cleanup
+\end{itemize}
+
+\subsection{Weekly Tasks}
+\begin{itemize}
+    \item Database optimization
+    \item System backup
+    \item Usage statistics review
+    \item Resource usage analysis
+\end{itemize}
+
+\subsection{Monthly Tasks}
+\begin{itemize}
+    \item Full system backup
+    \item Model updates check
+    \item Long-term storage cleanup
+    \item Performance trend analysis
+\end{itemize}
+
+\subsection{Quarterly Tasks}
+\begin{itemize}
+    \item System update review
+    \item Hardware diagnostics
+    \item Security audit
+    \item Recovery plan testing
+\end{itemize}
+
+\section{Best Practices}
+
+\subsection{Maintenance Guidelines}
+\begin{enumerate}
+    \item Document all maintenance activities
+    \item Follow update procedures strictly
+    \item Test backups regularly
+    \item Monitor system health metrics
+    \item Maintain update history
+    \item Schedule maintenance during off-peak hours
+\end{enumerate}
+
+\subsection{Troubleshooting Steps}
+\begin{enumerate}
+    \item Check system logs
+    \item Review error messages
+    \item Verify system resources
+    \item Test critical components
+    \item Document issues and resolutions
+    \item Update maintenance procedures as needed
+\end{enumerate}

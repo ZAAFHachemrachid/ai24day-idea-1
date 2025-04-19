@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+venv/
+env/
+
+# Project build artifacts
+*.spec
+build/
+
+# Database
+*.sqlite
+*.db
+
+# Face recognition data
+face_data/face_database.pkl
+face_data/face_database.pkl.bak
+faces/archived/
+
+# Logs and temporary data
+logs/
+*.log
+attendance_records/*.csv
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local configuration
+.env
+config.local.py
+
+# Keep
+!requirements.txt
+!documentation/
+!*.md
+!*.tex

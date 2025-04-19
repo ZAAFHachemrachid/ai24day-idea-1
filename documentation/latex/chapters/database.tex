@@ -1,0 +1,210 @@
+\chapter{Database Architecture}
+
+\section{Overview}
+The system uses SQLite with SQLAlchemy ORM for efficient data management, providing robust storage for user information, face samples, and attendance records.
+
+\section{Schema Design}
+
+\subsection{Core Tables}
+\begin{lstlisting}[language=SQL]
+-- Users Table
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Face Samples Table
+CREATE TABLE face_samples (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER,
+    image_path TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Attendance Records Table
+CREATE TABLE attendance (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER,
+    date DATE DEFAULT CURRENT_DATE,
+    check_in_time DATETIME,
+    check_out_time DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+\end{lstlisting}
+
+\section{Database Optimization}
+
+\subsection{Indexing Strategy}
+\begin{lstlisting}[language=SQL]
+-- User Indexes
+CREATE INDEX idx_users_name ON users(name);
+CREATE INDEX idx_users_created_at ON users(created_at);
+
+-- Face Samples Indexes
+CREATE INDEX idx_face_samples_user_id ON face_samples(user_id);
+
+-- Attendance Indexes
+CREATE INDEX idx_attendance_user_date ON attendance(user_id, date);
+CREATE INDEX idx_attendance_date ON attendance(date);
+\end{lstlisting}
+
+\subsection{Query Optimization}
+\begin{lstlisting}[language=SQL]
+-- Efficient user lookup
+SELECT id, name 
+FROM users 
+WHERE name LIKE ? 
+LIMIT 1;
+
+-- Optimized attendance check
+SELECT a.* 
+FROM attendance a 
+WHERE a.user_id = ? 
+  AND a.date = CURRENT_DATE;
+
+-- Efficient face sample retrieval
+SELECT fs.image_path 
+FROM face_samples fs 
+WHERE fs.user_id = ?;
+\end{lstlisting}
+
+\section{Connection Management}
+
+\subsection{Connection Pool Configuration}
+\begin{lstlisting}[language=Python]
+def setup_database_pool():
+    """Configure database connection pool"""
+    engine = create_engine(
+        'sqlite:///database.sqlite',
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800
+    )
+    return engine
+
+def get_session():
+    """Get database session with retry mechanism"""
+    retry_count = 3
+    while retry_count > 0:
+        try:
+            session = Session()
+            return session
+        except Exception as e:
+            retry_count -= 1
+            time.sleep(1)
+    raise DatabaseConnectionError(
+        "Failed to establish database connection"
+    )
+\end{lstlisting}
+
+\section{Batch Operations}
+
+\subsection{Efficient Data Insertion}
+\begin{lstlisting}[language=Python]
+def batch_insert_attendance(records):
+    """Efficient batch insertion of attendance records"""
+    session = get_session()
+    try:
+        session.bulk_save_objects(records)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+\end{lstlisting}
+
+\section{Maintenance Procedures}
+
+\subsection{Database Optimization}
+\begin{lstlisting}[language=SQL]
+-- Database optimization script
+VACUUM;
+ANALYZE;
+REINDEX;
+\end{lstlisting}
+
+\subsection{Database Cleanup}
+\begin{lstlisting}[language=Python]
+def cleanup_old_records():
+    """Remove old attendance records"""
+    cutoff_date = datetime.now() - timedelta(days=365)
+    
+    session = get_session()
+    try:
+        session.query(Attendance)\
+            .filter(Attendance.date < cutoff_date)\
+            .delete()
+        session.commit()
+    finally:
+        session.close()
+\end{lstlisting}
+
+\section{Backup Strategy}
+
+\subsection{Automated Backup}
+\begin{lstlisting}[language=Python]
+def backup_database():
+    """Create database backup"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_path = f'backups/database_{timestamp}.sqlite'
+    
+    # Create backup
+    connection = sqlite3.connect('database.sqlite')
+    backup = sqlite3.connect(backup_path)
+    connection.backup(backup)
+    
+    # Compress backup
+    with open(backup_path, 'rb') as f_in:
+        with gzip.open(f'{backup_path}.gz', 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+\end{lstlisting}
+
+\subsection{Backup Rotation}
+\begin{lstlisting}[language=Python]
+def rotate_backups():
+    """Maintain backup rotation policy"""
+    backup_dir = 'backups'
+    max_backups = 10
+    
+    backups = sorted(
+        Path(backup_dir).glob('*.sqlite.gz'),
+        key=lambda x: x.stat().st_mtime
+    )
+    
+    # Remove old backups
+    while len(backups) > max_backups:
+        oldest = backups.pop(0)
+        oldest.unlink()
+\end{lstlisting}
+
+\section{Performance Monitoring}
+
+\subsection{Query Performance}
+\begin{lstlisting}[language=Python]
+def monitor_query_performance(query):
+    """Monitor query execution time"""
+    start_time = time.time()
+    result = session.execute(query)
+    execution_time = time.time() - start_time
+    
+    if execution_time > 1.0:  # Slow query threshold
+        log_slow_query(query, execution_time)
+    
+    return result
+\end{lstlisting}
+
+\subsection{Database Health Checks}
+\begin{lstlisting}[language=Python]
+def check_database_health():
+    """Perform database health check"""
+    checks = [
+        check_connection_pool(),
+        verify_indexes(),
+        check_table_sizes(),
+        analyze_query_performance()
+    ]
+    return all(checks)
+\end{lstlisting}

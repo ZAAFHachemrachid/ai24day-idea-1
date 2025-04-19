@@ -1,0 +1,224 @@
+\chapter{Face Tracking System}
+
+\section{Overview}
+The tracking system optimizes performance by predicting face locations between frames, reducing the need for full detection on every frame.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2cm]
+    \node (input) [draw, rectangle] {Frame Input};
+    \node (predict) [draw, rectangle, right of=input] {Motion Prediction};
+    \node (check) [draw, diamond, right of=predict] {Confidence Check};
+    \node (track) [draw, rectangle, below of=check] {Update Tracking};
+    \node (detect) [draw, rectangle, right of=check] {Full Detection};
+    \node (next) [draw, rectangle, right of=track] {Next Frame};
+    
+    \draw[->] (input) -- (predict);
+    \draw[->] (predict) -- (check);
+    \draw[->] (check) -- node[right] {Low} (detect);
+    \draw[->] (check) -- node[left] {High} (track);
+    \draw[->] (detect) -- (next);
+    \draw[->] (track) -- (next);
+\end{tikzpicture}
+\caption{Face Tracking Pipeline}
+\end{figure}
+
+\section{Motion Predictor}
+
+\subsection{Kalman Filter Implementation}
+\begin{lstlisting}[language=Python]
+class MotionPredictor:
+    """Predicts face motion between frames using Kalman filtering"""
+    def __init__(self):
+        self.kalman = cv2.KalmanFilter(4, 2)  # State: x, y, dx, dy
+        self.initialize_kalman()
+        self.last_position = None
+        self.confidence = 1.0
+        
+    def initialize_kalman(self):
+        """Initialize Kalman filter parameters"""
+        self.kalman.measurementMatrix = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0]], np.float32)
+        
+        self.kalman.transitionMatrix = np.array([
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]], np.float32)
+        
+        self.kalman.processNoiseCov = np.array([
+            [1e-4, 0, 0, 0],
+            [0, 1e-4, 0, 0],
+            [0, 0, 1e-4, 0],
+            [0, 0, 0, 1e-4]], np.float32) * 0.03
+\end{lstlisting}
+
+\section{Face Tracker}
+
+\subsection{Tracker Implementation}
+\begin{lstlisting}[language=Python]
+class FaceTracker:
+    """Manages face tracking across video frames"""
+    def __init__(self):
+        self.trackers = {}  # id -> tracker mapping
+        self.motion_predictors = {}  # id -> predictor mapping
+        self.max_tracking_age = 30  # frames
+        
+    def update(self, frame, detections):
+        """Update trackers with new frame and detections"""
+        # Update existing trackers
+        self._update_trackers(frame)
+        
+        # Associate detections with trackers
+        self._associate_detections(detections)
+        
+        # Update motion predictions
+        self._update_predictions()
+        
+        # Remove stale trackers
+        self._cleanup_trackers()
+\end{lstlisting}
+
+\subsection{Detection Association}
+\begin{lstlisting}[language=Python]
+def _associate_detections(self, detections):
+    """Associate new detections with existing trackers"""
+    if not detections:
+        return
+        
+    # Calculate IoU matrix
+    iou_matrix = np.zeros((len(self.trackers), len(detections)))
+    for t, tracker in enumerate(self.trackers.values()):
+        for d, detection in enumerate(detections):
+            iou_matrix[t, d] = self._calculate_iou(
+                tracker.get_position(),
+                detection
+            )
+            
+    # Use Hungarian algorithm for optimal assignment
+    matched_indices = linear_assignment(-iou_matrix)
+    
+    # Update trackers with matched detections
+    for tracker_idx, detection_idx in matched_indices:
+        if iou_matrix[tracker_idx, detection_idx] >= self.iou_threshold:
+            self._update_tracker_with_detection(
+                list(self.trackers.keys())[tracker_idx],
+                detections[detection_idx]
+            )
+\end{lstlisting}
+
+\section{Multi-Scale Tracking}
+
+\subsection{Scale-Adaptive Tracking}
+\begin{lstlisting}[language=Python]
+class MultiScaleTracker:
+    """Implements multi-scale tracking for improved accuracy"""
+    def __init__(self):
+        self.scales = [0.5, 1.0, 2.0]
+        self.current_scale = 1.0
+        
+    def update(self, frame, bbox):
+        """Update tracking at multiple scales"""
+        best_response = float('-inf')
+        best_bbox = None
+        
+        for scale in self.scales:
+            scaled_frame = cv2.resize(
+                frame, 
+                None, 
+                fx=scale, 
+                fy=scale
+            )
+            scaled_bbox = self._scale_bbox(bbox, scale)
+            
+            response = self._compute_tracking_response(
+                scaled_frame,
+                scaled_bbox
+            )
+            
+            if response > best_response:
+                best_response = response
+                best_bbox = self._scale_bbox(
+                    scaled_bbox,
+                    1/scale
+                )
+                
+        return best_bbox
+\end{lstlisting}
+
+\section{Performance Optimization}
+
+\subsection{Selective Detection}
+\begin{lstlisting}[language=Python]
+def should_run_detection(self, tracker_id):
+    """Determine if full detection is needed"""
+    if tracker_id not in self.motion_predictors:
+        return True
+        
+    predictor = self.motion_predictors[tracker_id]
+    
+    # Run detection if confidence is low
+    if predictor.confidence < 0.6:
+        return True
+        
+    # Run detection periodically even with high confidence
+    if self.frame_count % 30 == 0:
+        return True
+        
+    return False
+\end{lstlisting}
+
+\subsection{Performance Metrics}
+\begin{lstlisting}[language=Python]
+class TrackingMetrics:
+    """Collects and analyzes tracking performance metrics"""
+    def __init__(self):
+        self.metrics = {
+            'tracking_success_rate': [],
+            'prediction_accuracy': [],
+            'detection_frequency': [],
+            'tracking_time': []
+        }
+        
+    def update_metrics(self, tracking_result):
+        """Update tracking performance metrics"""
+        self.metrics['tracking_success_rate'].append(
+            tracking_result.success_rate
+        )
+        self.metrics['prediction_accuracy'].append(
+            tracking_result.prediction_accuracy
+        )
+        self.metrics['detection_frequency'].append(
+            tracking_result.detection_frequency
+        )
+        self.metrics['tracking_time'].append(
+            tracking_result.processing_time
+        )
+\end{lstlisting}
+
+\section{Best Practices}
+
+\subsection{Tracking Guidelines}
+\begin{enumerate}
+    \item \textbf{Initialization}
+    \begin{itemize}
+        \item Initialize trackers only with high-confidence detections
+        \item Verify tracking stability before relying on predictions
+        \item Maintain multiple tracking hypotheses initially
+    \end{itemize}
+    
+    \item \textbf{Motion Prediction}
+    \begin{itemize}
+        \item Use Kalman filtering for smooth predictions
+        \item Adapt prediction parameters to motion patterns
+        \item Maintain prediction confidence metrics
+    \end{itemize}
+    
+    \item \textbf{Error Recovery}
+    \begin{itemize}
+        \item Implement robust failure detection
+        \item Recover gracefully from tracking losses
+        \item Maintain backup tracking strategies
+    \end{itemize}
+\end{enumerate}
