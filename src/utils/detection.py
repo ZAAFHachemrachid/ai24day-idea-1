@@ -154,6 +154,10 @@ class FaceDetector:
             faces_with_info: List of tuples ((x,y,w,h), name, confidence)
             show_landmarks: Whether to show facial landmarks
         """
+        # Create overlay for all drawings
+        overlay = frame.copy()
+        alpha = 0.6  # Transparency factor
+        
         # Update frame dimensions for tracking
         self.position_tracker.update_frame_dimensions(frame)
         frame_width = frame.shape[1]
@@ -175,9 +179,10 @@ class FaceDetector:
                     
                 x, y, w, h = bbox
                 
+                # Prepare drawing batch for this face
                 # Draw face rectangle with color based on recognition
                 color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
-                cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+                cv2.rectangle(overlay, (x, y), (x+w, y+h), color, 2)
                 
                 # Get position information
                 position_info = self.position_tracker.get_face_position((x, y, w, h))
@@ -197,17 +202,17 @@ class FaceDetector:
                 text_size = cv2.getTextSize(position_text, cv2.FONT_HERSHEY_SIMPLEX, 1.2, 2)[0]
                 text_x = x + (w - text_size[0]) // 2
                 
-                # Black background for position text
-                cv2.rectangle(frame,
-                           (text_x - 10, base_y - 25),
-                           (text_x + text_size[0] + 10, base_y + 5),
-                           (0, 0, 0),
-                           -1)
+                # Semi-transparent background for text
+                cv2.rectangle(overlay,
+                            (text_x - 10, base_y - 25),
+                            (text_x + text_size[0] + 10, base_y + 5),
+                            (0, 0, 0),
+                            -1)
                 
                 # Draw position text
-                cv2.putText(frame, position_text,
-                          (text_x, base_y),
-                          cv2.FONT_HERSHEY_SIMPLEX, 1.2, position_color, 2)
+                cv2.putText(overlay, position_text,
+                           (text_x, base_y),
+                           cv2.FONT_HERSHEY_SIMPLEX, 1.2, position_color, 2)
                 
                 # Draw percentage below position
                 percentage_text = f"{abs(position_info['relative_position']):.0f}%"
@@ -215,25 +220,25 @@ class FaceDetector:
                 perc_x = x + (w - perc_size[0]) // 2
                 perc_y = base_y + spacing
                 
-                # Black background for percentage
-                cv2.rectangle(frame,
-                           (perc_x - 10, perc_y - 25),
-                           (perc_x + perc_size[0] + 10, perc_y + 5),
-                           (0, 0, 0),
-                           -1)
+                # Semi-transparent background for percentage
+                cv2.rectangle(overlay,
+                            (perc_x - 10, perc_y - 25),
+                            (perc_x + perc_size[0] + 10, perc_y + 5),
+                            (0, 0, 0),
+                            -1)
                 
                 # Draw percentage
-                cv2.putText(frame, percentage_text,
-                          (perc_x, perc_y),
-                          cv2.FONT_HERSHEY_SIMPLEX, 1.0, position_color, 2)
+                cv2.putText(overlay, percentage_text,
+                           (perc_x, perc_y),
+                           cv2.FONT_HERSHEY_SIMPLEX, 1.0, position_color, 2)
                 
                 # Draw direction arrow
                 arrow_y = base_y + spacing * 2
                 arrow_start = (x + w//2, arrow_y)
                 arrow_length = 40
                 arrow_end = (arrow_start[0] - arrow_length, arrow_y) if position_info['position'] == 'left' \
-                           else (arrow_start[0] + arrow_length, arrow_y)
-                cv2.arrowedLine(frame, arrow_start, arrow_end, position_color, 3, tipLength=0.5)
+                            else (arrow_start[0] + arrow_length, arrow_y)
+                cv2.arrowedLine(overlay, arrow_start, arrow_end, position_color, 3, tipLength=0.5)
                 
                 # Draw distance information
                 distance_text = f"{distance_info['distance_m']:.1f}m"
@@ -241,17 +246,17 @@ class FaceDetector:
                 dist_x = x + (w - dist_size[0]) // 2
                 dist_y = arrow_y + spacing
                 
-                # Black background for distance
-                cv2.rectangle(frame,
-                           (dist_x - 10, dist_y - 25),
-                           (dist_x + dist_size[0] + 10, dist_y + 5),
-                           (0, 0, 0),
-                           -1)
+                # Semi-transparent background for distance
+                cv2.rectangle(overlay,
+                            (dist_x - 10, dist_y - 25),
+                            (dist_x + dist_size[0] + 10, dist_y + 5),
+                            (0, 0, 0),
+                            -1)
                 
                 # Draw distance text in blue
-                cv2.putText(frame, distance_text,
-                          (dist_x, dist_y),
-                          cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 165, 0), 2)
+                cv2.putText(overlay, distance_text,
+                           (dist_x, dist_y),
+                           cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 165, 0), 2)
                 
                 if show_landmarks:
                     # Get the face ROI
@@ -276,16 +281,16 @@ class FaceDetector:
                     name_x = x + (w - text_size[0]) // 2
                     name_y = y - 25  # Space above face
                     
-                    # Black background
-                    cv2.rectangle(frame,
-                               (name_x - 5, name_y - 20),
-                               (name_x + text_size[0] + 5, name_y + 5),
-                               (0, 0, 0),
-                               -1)
+                    # Semi-transparent background
+                    cv2.rectangle(overlay,
+                                (name_x - 5, name_y - 20),
+                                (name_x + text_size[0] + 5, name_y + 5),
+                                (0, 0, 0),
+                                -1)
                     
                     # Draw name text in green
-                    cv2.putText(frame, text, (name_x, name_y),
-                              cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                    cv2.putText(overlay, text, (name_x, name_y),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
                 else:
                     # For unknown faces, add to list for sequential numbering
                     self.current_unknown_faces.append((x, y))
@@ -332,39 +337,45 @@ class FaceDetector:
                     name_x = ux + (w - text_size[0]) // 2
                     name_y = uy - 25  # Match the spacing of known faces
                     
-                    # Black background
-                    cv2.rectangle(frame,
+                    # Semi-transparent background
+                    cv2.rectangle(overlay,
                                 (name_x - 5, name_y - 20),
                                 (name_x + text_size[0] + 5, name_y + 5),
                                 (0, 0, 0),
                                 -1)
                     
                     # Draw unknown face number in pure red
-                    cv2.putText(frame, text, (name_x, name_y),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                    cv2.putText(overlay, text, (name_x, name_y),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
         
         # Reset unknown faces list for next frame
         self.current_unknown_faces = []
         
         # Add detection count using faces_with_info
-        cv2.putText(frame, f"Detected: {len(faces_with_info)}", (10, 30),
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(overlay, f"Detected: {len(faces_with_info)}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         
         # Draw prominent center line
         height = frame.shape[0]
         center_x = frame.shape[1] // 2
         
         # Yellow center line
-        cv2.line(frame, (center_x, 0), (center_x, height),
-                (0, 255, 255), 3)
+        cv2.line(overlay, (center_x, 0), (center_x, height),
+                 (0, 255, 255), 3)
         
         # Add "CENTER LINE" text
-        cv2.putText(frame, "CENTER",
-                    (center_x - 45, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
+        cv2.putText(overlay, "CENTER",
+                     (center_x - 45, 50),
+                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
+                     
+        # Apply the overlay with transparency
+        cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
         
         # Draw motion predictions if enabled
         if show_predictions:
+            predictions_overlay = frame.copy()
+            pred_alpha = 0.4  # More transparent for predictions
+            
             for face_info in faces_with_info:
                 try:
                     bbox, name, _ = face_info
@@ -380,21 +391,26 @@ class FaceDetector:
                         
                         # Draw prediction point with confidence-based color
                         color = (0, int(255 * confidence), int(255 * (1 - confidence)))
-                        cv2.circle(frame, (int(pred_x), int(pred_y)), 5, color, -1)
+                        cv2.circle(predictions_overlay, (int(pred_x), int(pred_y)), 5, color, -1)
                         
                         # Draw line from current to predicted position
                         current_center = (x + w//2, y + h//2)
-                        cv2.line(frame, current_center, (int(pred_x), int(pred_y)), color, 2)
+                        cv2.line(predictions_overlay, current_center,
+                               (int(pred_x), int(pred_y)), color, 2)
                         
                         # Draw search region
                         if confidence > 0.5:
-                            search_x, search_y, search_w, search_h = predictor.get_search_region(frame.shape[1], frame.shape[0])
-                            cv2.rectangle(frame, (search_x, search_y),
-                                        (search_x + search_w, search_y + search_h),
-                                        color, 1)
-                            
+                            search_x, search_y, search_w, search_h = predictor.get_search_region(
+                                frame.shape[1], frame.shape[0])
+                            cv2.rectangle(predictions_overlay, (search_x, search_y),
+                                       (search_x + search_w, search_y + search_h),
+                                       color, 1)
                 except (IndexError, ValueError) as e:
                     logger.error(f"Error drawing prediction: {str(e)}")
                     continue
+            
+            # Apply predictions overlay with transparency
+            cv2.addWeighted(predictions_overlay, pred_alpha, frame, 1 - pred_alpha, 0, frame)
         
         return frame
+  

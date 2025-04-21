@@ -213,9 +213,13 @@ class FaceRecognitionApp(ctk.CTk):
                         # Submit frame for detection
                         self.detection_pool.process_frame(small_frame)
                         
-                        # Get detection results
+                        # Get and validate detection results
                         detection_result = self.detection_pool.get_result()
-                        if detection_result:
+                        if detection_result and detection_result.faces:
+                            # Create stable copy of faces for processing
+                            detection_faces = list(detection_result.faces)
+                            faces_count = len(detection_faces)
+                            logger.debug(f"Got detection result with {faces_count} faces")
                             # Update detection times
                             self.detection_times.append(detection_result.processing_time)
                             
@@ -254,8 +258,13 @@ class FaceRecognitionApp(ctk.CTk):
                                     if not recognition_result:
                                         break
                                         
-                                    # Get face coordinates - use original face_id for detection lookup
-                                    face = detection_result.faces[recognition_result.face_id]
+                                    # Validate face_id
+                                    if recognition_result.face_id >= faces_count:
+                                        logger.error(f"Face ID out of range: {recognition_result.face_id} >= {faces_count}")
+                                        continue
+
+                                    # Get face coordinates from stable copy
+                                    face = detection_faces[recognition_result.face_id]
                                     bbox = face.bbox.astype(int)
                                     x, y, x2, y2 = bbox
                                     w, h = x2 - x, y2 - y

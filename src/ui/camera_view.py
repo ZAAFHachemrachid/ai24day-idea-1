@@ -4,7 +4,9 @@ import cv2
 from PIL import Image, ImageTk
 from typing import Optional, Dict, Callable
 import logging
+import time
 from src.utils.camera_manager import CameraManager
+from src.utils.frame_buffer import CircularFrameBuffer
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -13,6 +15,10 @@ class CameraGridView(ttk.Frame):
     def __init__(self, parent, camera_manager: CameraManager):
         super().__init__(parent)
         self.camera_manager = camera_manager
+        self.frame_buffer = CircularFrameBuffer(buffer_size=3)  # Triple buffering
+        self.last_update_time = 0
+        self.update_interval = 1.0 / 60  # Target 60 FPS for smooth display
+        self.photo_image = None  # Keep track of current PhotoImage
         self.setup_ui()
         
     def setup_ui(self):
@@ -22,29 +28,49 @@ class CameraGridView(ttk.Frame):
         
     def update_frame(self, processed_frame=None):
         """Update the grid view with current camera frames"""
+        # Check if enough time has passed since last update
+        current_time = time.time()
+        if current_time - self.last_update_time < self.update_interval:
+            return
+            
+        # Get frames and push to buffer
         grid_frame = self.camera_manager.get_grid_frames()
         if grid_frame.size > 0:
             try:
                 # Use processed frame if available (contains face detection overlays)
                 display_frame = processed_frame if processed_frame is not None else grid_frame
                 
+                # Push frame to buffer
+                self.frame_buffer.push_frame(display_frame)
+                
+                # Get frame from buffer for display
+                frame_to_display = self.frame_buffer.peek_frame()
+                if frame_to_display is None:
+                    return
+                
                 # Convert to PhotoImage
                 # Resize frame if too large
-                h, w = display_frame.shape[:2]
+                h, w = frame_to_display.shape[:2]
                 if w > 1280 or h > 720:  # Max size for display
                     scale = min(1280/w, 720/h)
                     new_size = (int(w * scale), int(h * scale))
-                    display_frame = cv2.resize(display_frame, new_size)
+                    frame_to_display = cv2.resize(frame_to_display, new_size)
                     logger.debug(f"Resized frame from {w}x{h} to {new_size[0]}x{new_size[1]}")
 
-                image = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+                # Convert frame for display
+                image = cv2.cvtColor(frame_to_display, cv2.COLOR_BGR2RGB)
                 image = Image.fromarray(image)
-                photo = ImageTk.PhotoImage(image=image)
-                logger.debug("Successfully converted frame to PhotoImage")
                 
-                # Update label
-                self.video_label.configure(image=photo)
-                self.video_label.image = photo  # Keep reference
+                # Create new PhotoImage only if needed
+                if self.photo_image is None:
+                    self.photo_image = ImageTk.PhotoImage(image=image)
+                else:
+                    # Update existing PhotoImage
+                    self.photo_image.paste(image)
+                
+                # Update label with current PhotoImage
+                self.video_label.configure(image=self.photo_image)
+                self.last_update_time = current_time
                 logger.debug("Grid view updated successfully")
             except Exception as e:
                 logger.error(f"Failed to update grid view: {str(e)}", exc_info=True)
@@ -56,6 +82,10 @@ class SingleCameraView(ttk.Frame):
         super().__init__(parent)
         self.camera_manager = camera_manager
         self.camera_id = camera_id
+        self.frame_buffer = CircularFrameBuffer(buffer_size=3)  # Triple buffering
+        self.last_update_time = 0
+        self.update_interval = 1.0 / 60  # Target 60 FPS for smooth display
+        self.photo_image = None  # Keep track of current PhotoImage
         self.setup_ui()
         
     def setup_ui(self):
@@ -83,29 +113,48 @@ class SingleCameraView(ttk.Frame):
         
     def update_frame(self, processed_frame=None):
         """Update the camera view with current frame"""
+        # Check if enough time has passed since last update
+        current_time = time.time()
+        if current_time - self.last_update_time < self.update_interval:
+            return
+            
         frame = self.camera_manager.get_frame(self.camera_id)
         if frame is not None:
             try:
                 # Use processed frame if available (contains face detection overlays)
                 display_frame = processed_frame if processed_frame is not None else frame
                 
+                # Push frame to buffer
+                self.frame_buffer.push_frame(display_frame)
+                
+                # Get frame from buffer for display
+                frame_to_display = self.frame_buffer.peek_frame()
+                if frame_to_display is None:
+                    return
+                
                 # Convert to PhotoImage
                 # Resize frame if too large
-                h, w = display_frame.shape[:2]
+                h, w = frame_to_display.shape[:2]
                 if w > 1280 or h > 720:  # Max size for display
                     scale = min(1280/w, 720/h)
                     new_size = (int(w * scale), int(h * scale))
-                    display_frame = cv2.resize(display_frame, new_size)
+                    frame_to_display = cv2.resize(frame_to_display, new_size)
                     logger.debug(f"Resized frame from {w}x{h} to {new_size[0]}x{new_size[1]}")
 
-                image = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+                # Convert frame for display
+                image = cv2.cvtColor(frame_to_display, cv2.COLOR_BGR2RGB)
                 image = Image.fromarray(image)
-                photo = ImageTk.PhotoImage(image=image)
-                logger.debug("Successfully converted frame to PhotoImage")
                 
-                # Update label
-                self.video_label.configure(image=photo)
-                self.video_label.image = photo  # Keep reference
+                # Create new PhotoImage only if needed
+                if self.photo_image is None:
+                    self.photo_image = ImageTk.PhotoImage(image=image)
+                else:
+                    # Update existing PhotoImage
+                    self.photo_image.paste(image)
+                
+                # Update label with current PhotoImage
+                self.video_label.configure(image=self.photo_image)
+                self.last_update_time = current_time
                 logger.debug(f"Camera view {self.camera_id} updated successfully")
                 
                 # Update status

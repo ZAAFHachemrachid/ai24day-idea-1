@@ -34,30 +34,6 @@ check_python() {
     log_info "Found Python version: $PYTHON_VERSION"
 }
 
-# Check if git is installed
-check_git() {
-    if ! command -v git &> /dev/null; then
-        log_error "Git is not installed. Please install Git and try again."
-        exit 1
-    fi
-}
-
-# Clone the repository
-clone_repo() {
-    local repo_url="https://github.com/ZAAFHachemrachid/ai24day-idea-1"
-    local repo_name=$(basename "$repo_url" .git)
-    
-    if [ -d "$repo_name" ]; then
-        log_error "Directory $repo_name already exists. Please remove or rename it and try again."
-        exit 1
-    }
-    
-    log_info "Cloning repository..."
-    git clone "$repo_url"
-    cd "$repo_name"
-    log_success "Repository cloned successfully"
-}
-
 # Set up virtual environment
 setup_venv() {
     log_info "Creating virtual environment..."
@@ -110,7 +86,7 @@ verify_installation() {
     if [ ! -f "src/main.py" ]; then
         log_error "Main script not found: src/main.py"
         exit 1
-    }
+    fi
     
     # Try to run the application in test mode (if supported)
     # python3 src/main.py --test
@@ -120,17 +96,15 @@ verify_installation() {
 
 # Main installation process
 main() {
-    log_info "Starting installation..."
+    log_info "Starting setup..."
     
     check_python
-    check_git
-    clone_repo
     setup_venv
     install_dependencies
     initialize_project
     verify_installation
     
-    log_success "Installation completed successfully!"
+    log_success "Setup completed successfully!"
     log_info "To run the application:"
     echo -e "${BLUE}1. Activate the virtual environment:${NC} source venv/bin/activate"
     echo -e "${BLUE}2. Run the application:${NC} python3 src/main.py"
