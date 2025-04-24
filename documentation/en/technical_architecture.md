@@ -119,7 +119,6 @@ graph TB
 
 ## Documentation Structure
 - `documentation/en/`: English technical documentation
-- `documentation/ar/`: Arabic documentation
 - `documentation/latex/`: Detailed technical specifications
 
 ## Performance Optimization
